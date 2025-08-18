@@ -147,7 +147,12 @@ const search = function(msg) {
       bot.sendMessage(msg.chat.id, '抓取結果時發生錯誤！');
       return;
     }
-    const processItem = function() {
+
+    const result = [];
+    const $ = cheerio.load(body, {
+      xmlMode: true
+    });
+    if ($('item').index() > 0) {
       $('item').each((i, elem) => {
         if (i < 5) {
           const date = dayjs($(elem).children('pubDate').text());
@@ -165,14 +170,6 @@ const search = function(msg) {
         disable_web_page_preview: true,
         disable_notification: true
       });
-    };
-
-    const result = [];
-    const $ = cheerio.load(body, {
-      xmlMode: true
-    });
-    if ($('item').index() > 0) {
-      processItem();
     } else {
       bot.sendMessage(msg.chat.id, '找不到任何結果！');
     }
