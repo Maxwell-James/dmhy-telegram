@@ -235,18 +235,18 @@ const getUpdate = function() {
           disable_notification: true
         }).catch(() => {});
       } else {
-        bot.sendMessage(channel, messages.join('\n\n'), {
+        retryCooldown(() => bot.sendMessage(channel, messages.join('\n\n'), {
           parse_mode: 'HTML',
           disable_web_page_preview: true,
           disable_notification: true
-        }).then((msg) => {
+        })).then((msg) => {
           messageIDs.set(msg.chat.id, msg.message_id);
         }).catch((e) => {
           console.log('Send Update to %s failed! Error: %s', channel, e.message);
           if (failed.indexOf(channel) > -1) {
             channels.delete(channel);
             saveData();
-          } else if (e.code === 'ETELEGRAM' && e.response.body.error_code >= 400 && e.response.body.error_code < 500 ) {
+          } else if (e.code === 'ETELEGRAM' && e.response.body.error_code >= 400 && e.response.body.error_code < 500 && e.response.body.error_code !== 429) {
             failed.push(channel);
           }
         });
@@ -254,6 +254,28 @@ const getUpdate = function() {
     });
   });
 };
+
+function sleep(time) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
+
+async function retryCooldown(request) {
+  try {
+    return await request();
+  } catch (error) {
+    if (error.code === 'ETELEGRAM' && error.response.statusCode === 429) {
+      const delayTime = error.message.split(' ').pop();
+
+      if (isNaN(delayTime)) throw error;
+
+      await sleep(delayTime * 1000);
+      return retryCooldown(request);
+    } else if (error.response && error.response.statusCode >= 500) {
+      await sleep(1000);
+      return retryCooldown(request);
+    } else throw error;
+  }
+}
 
 schedule.scheduleJob('0 * * * * *', getUpdate);
 schedule.scheduleJob('0 * * * *', () => {

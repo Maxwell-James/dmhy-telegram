@@ -21,5 +21,8 @@
         "prefer-const": "error",
         "require-jsdoc": "off",
         "semi": "warn"
+    },
+    "parserOptions": {
+        "ecmaVersion": 8
     }
 }
